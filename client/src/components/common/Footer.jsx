@@ -4,7 +4,7 @@ import { FaFacebookF } from "react-icons/fa"; // ফেসবুুক আইক
 
 export default function Footer() {
   // ফেসবুক পেজের URL এখানে দিন
-  const facebookUrl = "YOUR_FACEBOOK_PAGE_URL";
+  const facebookUrl = "https://www.facebook.com/ishasOrganization";
   const currentYear = new Date().getFullYear();
 
   return (
