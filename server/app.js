@@ -23,7 +23,7 @@ app.use(cookieParser()); // Parse cookies
 
 // Enable CORS for frontend
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://ishasorganization.netlify.app/',
+  origin: process.env.CLIENT_URL || 'https://ishasorganization.netlify.app',
   credentials: true
 }));
 
