@@ -13,47 +13,74 @@ const errorHandler = require('./middlewares/errorHandler');
 // =====================
 connectDB();
 
+// 💡 সমাধান: CORS হোয়াইটলিস্ট (Whitelist) তৈরি করা।
+// এটি স্ল্যাশ (/) জনিত সমস্যা এড়াতে সাহায্য করবে।
+const allowedOrigins = [
+    'https://ishasorganization.netlify.app', // স্ল্যাশ ছাড়া
+    'https://ishasorganization.netlify.app/', // স্ল্যাশসহ
+    'http://localhost:3000', // লোকাল ডেভেলপমেন্টের জন্য
+    'http://localhost:5173', // যদি আপনি Vite ব্যবহার করেন
+];
+
+// CLIENT_URL এনভায়রনমেন্ট ভ্যারিয়েবল থাকলে, সেটিও হোয়াইটলিস্টে যোগ করা হবে।
+if (process.env.CLIENT_URL) {
+    const cleanUrl = process.env.CLIENT_URL.replace(/\/$/, ''); // শেষের স্ল্যাশ মুছে
+    allowedOrigins.push(cleanUrl);
+    allowedOrigins.push(cleanUrl + '/');
+}
+
+
 // =====================
 // Middleware
 // =====================
-app.use(helmet()); // Security headers
-app.use(express.json({ limit: '10mb' })); // JSON parsing
-app.use(express.urlencoded({ extended: true })); // URL encoded
-app.use(cookieParser()); // Parse cookies
+app.use(helmet()); 
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.urlencoded({ extended: true })); 
+app.use(cookieParser()); 
 
-// Enable CORS for frontend
+// Enable CORS for frontend using the dynamic whitelist
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://ishasorganization.netlify.app',
-  credentials: true
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or postman)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log(`CORS Error: Origin ${origin} not allowed by the server.`);
+            callback(new Error('Not allowed by CORS'), false);
+        }
+    },
+    credentials: true
 }));
 
-// Rate limiting
+// Rate limiting... (rest of the code remains the same)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+    windowMs: 15 * 60 * 1000, 
+    max: 200, 
+    message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', apiLimiter);
 
 // =====================
-// Routes
+// Routes...
 // =====================
-app.use('/api/auth', require('./routes/auth'));      // Auth routes
-app.use('/api/users', require('./routes/users'));    // User routes
-app.use('/api/funds', require('./routes/fund'));      // Fund routes
-app.use('/api/upload', require('./routes/upload'));  // Upload routes
-app.use('/api/blogs', require('./routes/blog'));     // Blog routes
-app.use('/api/notices', require('./routes/notice')); // Notice routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/funds', require('./routes/fund'));
+app.use('/api/upload', require('./routes/upload'));
+app.use('/api/blogs', require('./routes/blog'));
+app.use('/api/notices', require('./routes/notice'));
 
 // =====================
-// Health Check
+// Health Check...
 // =====================
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
+app.get('/', (req, res) => {
+    res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
 });
 
 // =====================
-// Error Handler
+// Error Handler...
 // =====================
 app.use(errorHandler);
 
