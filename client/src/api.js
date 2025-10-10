@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // ✅ Base URL Configuration
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || 'https://ishasorganizationbackend.onrender.com/api';
 
 // ✅ 1. Main axios instance তৈরি
 const api = axios.create({
