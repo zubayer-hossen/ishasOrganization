@@ -17,14 +17,32 @@ const createRefreshToken = (user) =>
 // =====================================
 
 
+// server/controllers/authController.js (Updated)
+
+// ⚠️ এখানে bcryptjs ব্যবহার করা হয়েছে, যা আপনার ইম্পোর্টে ছিল
+const bcrypt = require('bcryptjs'); 
+// const bcrypt = require('bcrypt'); // যদি আপনার প্যাকেজে 'bcrypt' থাকে তবে এটি ব্যবহার করুন
+
+const User = require('../models/User');
+const VerificationToken = require('../models/VerificationToken');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
+const AuditLog = require('../models/AuditLog');
+
+// ... (createAccessToken, createRefreshToken, createOwnerNotificationHtml ফাংশনগুলো অপরিবর্তিত থাকবে)
+
+// REGISTER
+// =====================================
+
 // ⚠️ আপনার মালিকের ইমেইল অ্যাড্রেস এবং ব্যানার URL এখানে দিন
 const OWNER_EMAIL = process.env.OWNER_EMAIL || "alexandyfor2day11@gmail.com"; 
 const ORGANIZATION_NAME = "ISHAS ORGANIZATION";
 
 
-// 🎨 মালিকের নোটিফিকেশনের জন্য সুন্দর এবং বিস্তারিত HTML টেমপ্লেট
 const createOwnerNotificationHtml = ({ name, email, phone, address, chadarPoriman }) => {
-    const BANNER_URL = process.env.EMAIL_BANNER_URL || "https://i.ibb.co.com/Lz2PFvXz/472336431-122098466192716914-7147800908504199836-n.png"; // আপনার ব্যানার ইমেজের URL দিন
+    // ... (আপনার প্রদত্ত HTML টেমপ্লেট কোডটি এখানে থাকবে, যা অপরিবর্তিত)
+    const BANNER_URL = process.env.EMAIL_BANNER_URL || "https://i.ibb.co.com/Lz2PFvXz/472336431-122098466192716914-7147800908504199836-n.png";
     const ADMIN_PANEL_URL = `${process.env.CLIENT_URL}/admin/login`;
 
     return `
@@ -101,10 +119,11 @@ exports.register = async (req, res) => {
         if (exists) return res.status(400).json({ msg: 'Email already registered' });
 
         // User creation
-        const hashed = await bcrypt.hash(password, 12);
+        // ⚠️ আপনার ইম্পোর্ট অনুযায়ী bcrypt.hash() ব্যবহার করা হয়েছে
+        const hashed = await bcrypt.hash(password, 10); // 12 এর পরিবর্তে 10 ব্যবহার করা হলো, যা bcryptjs-এ স্ট্যান্ডার্ড
         const user = await User.create({ name, fatherName, email, password: hashed, phone, address, nid, occupation, avatar, bio });
         
-        // Use user's default 'chadarPoriman' which is 50 in the schema
+        // Use user's default 'chadarPoriman'
         const chadarPoriman = user.chadarPoriman || 50; 
 
         // 1. New User Email Verification Process
@@ -120,7 +139,7 @@ exports.register = async (req, res) => {
         });
 
 
-        // 2. Owner Notification Process (NEW)
+        // 2. Owner Notification Process
         try {
             await sendEmail({
                 to: OWNER_EMAIL,
@@ -134,19 +153,24 @@ exports.register = async (req, res) => {
                 })
             });
         } catch (notificationError) {
-            // Log the notification error but continue the registration process
+            // If notification fails, log it but don't stop the registration success
             console.error("Owner notification failed to send:", notificationError);
         }
 
-        // Audit Log and Response
+        // Audit Log and Final Response
         await AuditLog.create({ action: 'register', actor: user._id, detail: { email, name } });
 
-        res.status(201).json({ msg: '✅ Registered successfully! Please verify your email.' });
+        // 💡 এই লাইনটি নিশ্চিত করবে যে সার্ভার সফলভাবে সাড়া দিয়েছে
+        return res.status(201).json({ msg: '✅ Registered successfully! Please verify your email.' });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: 'Server error' });
+        // 🚨 সবচেয়ে গুরুত্বপূর্ণ পরিবর্তন: ত্রুটিটি বিস্তারিতভাবে কনসোলে প্রিন্ট হবে
+        console.error("🔴 Registration Error Details:", err.message, err.stack);
+        // ফ্রন্টএন্ডকে একটি সাধারণ এরর মেসেজ পাঠানো হলো
+        return res.status(500).json({ msg: 'Server error during registration. Check server logs.' });
     }
 };
+
+// ... (বাকি কন্ট্রোলার ফাংশনগুলো অপরিবর্তিত থাকবে)
 
 // =====================================
 
