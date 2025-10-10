@@ -35,10 +35,11 @@ exports.register = async (req, res) => {
 
     await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
 
-    res.status(201).json({ msg: '✅ Registered successfully! Please verify your email.' });
+    return res.status(201).json({ msg: '✅ Registered successfully! Please verify your email.' });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    return res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -66,10 +67,10 @@ exports.verifyEmail = async (req, res) => {
 
     await AuditLog.create({ action: 'verify-email', actor: user._id, detail: { email: user.email } });
 
-    res.json({ msg: '✅ Email verified successfully. You may now login.' });
+    return res.json({ msg: '✅ Email verified successfully. You may now login.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    return res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -100,13 +101,13 @@ exports.login = async (req, res) => {
 
     await AuditLog.create({ action: "login", actor: user._id, detail: {} });
 
-    res.json({
+    return res.json({
       accessToken,
       user: { ...user._doc, password: undefined } // exclude password
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    return res.status(500).json({ msg: "Server error" });
   }
 };
 
@@ -124,10 +125,10 @@ exports.refreshToken = async (req, res) => {
     if (!user) return res.status(401).json({ ok: false });
 
     const newAccess = createAccessToken(user);
-    res.json({ accessToken: newAccess });
+    return res.json({ accessToken: newAccess });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    return res.status(500).json({ msg: 'Server error' });
   }
 };
 
@@ -136,9 +137,9 @@ exports.logout = async (req, res) => {
   try {
     res.clearCookie('jid', { path: '/api/auth/refresh_token' });
     if (req.user) await AuditLog.create({ action: 'logout', actor: req.user._id, detail: {} });
-    res.json({ msg: 'Logged out' });
+    return res.json({ msg: 'Logged out' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    return res.status(500).json({ msg: 'Server error' });
   }
 };
