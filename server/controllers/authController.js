@@ -35,7 +35,7 @@ exports.register = async (req, res) => {
 
     await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
 
-    return res.status(201).json({ msg: '✅ Registered successfully! Please verify your email.' });
+    return res.status(201).json({ msg: ' Registered successfully! Please verify your email.' });
 
   } catch (err) {
     console.error(err);

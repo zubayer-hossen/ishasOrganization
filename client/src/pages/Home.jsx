@@ -13,9 +13,7 @@ export default function Home() {
   ];
 
   const headlines = [
-    "Welcome to ISHAS",
-    "Annual Donation Campaign Started",
-    "Volunteer Recruitment Open",
+    "জুমার নামাজের পর “ইশাস”-এর বৃক্ষরোপণ কর্মসূচি সফলভাবে সম্পন্ন — সবুজ ভবিষ্যতের পথে মানবতার অঙ্গীকার",
   ];
 
   return (
