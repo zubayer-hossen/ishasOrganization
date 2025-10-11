@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Register from "./pages/auth/Register";
+
 import Login from "./pages/auth/Login";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -19,6 +19,7 @@ import ProtectedRoute from "./components/routes/ProtectedRoute";
 import RoleRoute from "./components/routes/RoleRoute";
 import Home from "./pages/Home";
 import FundManagement from "./pages/admin/FundManagement";
+import Register from "./pages/auth/Register";
 
 function App() {
   return (
