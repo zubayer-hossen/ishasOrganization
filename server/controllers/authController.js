@@ -6,61 +6,59 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const AuditLog = require('../models/AuditLog');
 
-// JWT tokens
+// JWT token creation
 const createAccessToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
 const createRefreshToken = (user) =>
   jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN });
 
-// REGISTER
-// =====================================
-
+// ===============================
 
 exports.register = async (req, res) => {
-  try {
-    const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ msg: 'Name, email, password required' });
+  try {
+    const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ msg: 'Name, email and password are required' });
 
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ msg: 'Email already registered' });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ msg: 'Email already registered' });
 
-    const hashed = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, fatherName, email, password: hashed, phone, address, nid, occupation, avatar, bio });
+    const hashed = await bcrypt.hash(password, 12);
 
-    // ✅ ইমেইল পাঠানোর কাজটি এখন main thread ব্লক করবে না
-    try {
-        const token = crypto.randomBytes(32).toString('hex');
-        await VerificationToken.create({ userId: user._id, token });
-        const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
-        await sendEmail({ 
-            to: email, 
-            subject: 'ISHAS - Email Verification', 
-            html: `<p>Please click <a href="${link}">this link</a> to verify your email.</p>` 
-        });
-    } catch (emailError) {
-        // যদি ইমেইল পাঠাতে কোনো সমস্যা হয়, শুধু সার্ভার console-এ লগ হবে
-        console.error("❌ Failed to send verification email:", emailError.message);
-        // কিন্তু ইউজারকে error দেখানো হবে না, কারণ রেজিস্ট্রেশন সফল হয়েছে
-    }
+    const user = await User.create({
+      name,
+      fatherName,
+      email,
+      password: hashed,
+      phone,
+      address,
+      nid,
+      occupation,
+      avatar,
+      bio,
+    });
 
-    await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
+    // Email verification
+    const token = crypto.randomBytes(32).toString('hex');
+    await VerificationToken.create({ userId: user._id, token });
 
-    // ✅ এই রেসপন্সটি এখন ইমেইল পাঠানোর জন্য অপেক্ষা করবে না
-    return res.status(201).json({ msg: 'Registered successfully! Please verify your email.' });
+    const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+    await sendEmail({
+      to: email,
+      subject: 'ISHAS - Email Verification',
+      html: `<p>Click <a href="${link}">this link</a> to verify your email. Link valid for 24 hours.</p>`,
+    });
 
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ msg: 'Server error' });
-  }
+    await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
+
+    res.status(201).json({ msg: '✅ Registered successfully! Please check your email for verification.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
 };
 
-
-// =====================================
-
-
-
-// VERIFY EMAIL
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
@@ -71,6 +69,7 @@ exports.verifyEmail = async (req, res) => {
 
     const user = await User.findById(record.userId);
     if (!user) return res.status(400).json({ msg: 'User not found' });
+
     if (user.isVerified) return res.status(400).json({ msg: 'Email already verified' });
 
     user.isVerified = true;
@@ -82,11 +81,10 @@ exports.verifyEmail = async (req, res) => {
     return res.json({ msg: '✅ Email verified successfully. You may now login.' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
-// LOGIN
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -113,45 +111,64 @@ exports.login = async (req, res) => {
 
     await AuditLog.create({ action: "login", actor: user._id, detail: {} });
 
-    return res.json({
+    // Send full user data (excluding password)
+    res.json({
       accessToken,
-      user: { ...user._doc, password: undefined } // exclude password
+      user: {
+        id: user._id,
+        name: user.name,
+        fatherName: user.fatherName,
+        email: user.email,
+        phone: user.phone,
+        nid: user.nid,
+        address: user.address,
+        occupation: user.occupation,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio,
+        isVerified: user.isVerified,
+        chadarPoriman: user.chadarPoriman,
+        due: user.due,
+        paidMonths: user.paidMonths,
+        upcomingDue: user.upcomingDue,
+      },
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
-// REFRESH TOKEN
 exports.refreshToken = async (req, res) => {
   try {
     const token = req.cookies.jid;
     if (!token) return res.status(401).json({ ok: false });
 
     let payload;
-    try { payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET); } 
-    catch (e) { return res.status(401).json({ ok: false }); }
+    try {
+      payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    } catch (e) {
+      return res.status(401).json({ ok: false });
+    }
 
-    const user = await User.findById(payload.id).select('-password');
+    const user = await User.findById(payload.id);
     if (!user) return res.status(401).json({ ok: false });
 
     const newAccess = createAccessToken(user);
     return res.json({ accessToken: newAccess });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
-// LOGOUT
 exports.logout = async (req, res) => {
   try {
     res.clearCookie('jid', { path: '/api/auth/refresh_token' });
     if (req.user) await AuditLog.create({ action: 'logout', actor: req.user._id, detail: {} });
-    return res.json({ msg: 'Logged out' });
+    res.json({ msg: 'Logged out' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 };

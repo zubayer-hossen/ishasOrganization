@@ -4,7 +4,6 @@
   "description": "ISHAS fund-management backend (MERN)",
   "main": "server.js",
   "scripts": {
- 
     "start": "nodemon server.js",
     "seed-owner": "node seed/seedOwner.js"
   },

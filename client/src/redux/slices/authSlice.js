@@ -1,41 +1,39 @@
 // src/redux/slices/authSlice.js
-
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axiosInstance from "../../utils/axios"; // custom axios instance
+import API from "../../utils/axiosInstance";
 
 // =================== Initial State ===================
-// localStorage থেকে data load করা হচ্ছে
 const initialState = {
   user: JSON.parse(localStorage.getItem("user")) || null,
   accessToken: localStorage.getItem("accessToken") || null,
   loading: false,
   error: null,
-  successMessage: null, // success messages handle করার জন্য
+  successMessage: null,
 };
 
 // =================== Thunks ===================
 
-// Register User
+// 🔹 Register User
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (data, thunkAPI) => {
     try {
-      const res = await axiosInstance.post("/auth/register", data);
-      return res.data; // { msg: "Registered. Check your email..." }
+      const res = await API.post("/auth/register", data);
+      return res.data;
     } catch (err) {
       return thunkAPI.rejectWithValue(
-        err.response?.data?.msg || "Register failed"
+        err.response?.data?.msg || "Registration failed"
       );
     }
   }
 );
 
-// Login User
+// 🔹 Login User
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (data, thunkAPI) => {
     try {
-      const res = await axiosInstance.post("/auth/login", data);
+      const res = await API.post("/auth/login", data);
       return res.data; // { user, accessToken }
     } catch (err) {
       return thunkAPI.rejectWithValue(
@@ -45,13 +43,13 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// Verify Email
+// 🔹 Verify Email
 export const verifyEmail = createAsyncThunk(
-  "auth/verify",
+  "auth/verifyEmail",
   async (token, thunkAPI) => {
     try {
-      const res = await axiosInstance.get(`/auth/verify-email?token=${token}`);
-      return res.data; // { msg: "Email verified. You may now login." }
+      const res = await API.get(`/auth/verify-email?token=${token}`);
+      return res.data;
     } catch (err) {
       return thunkAPI.rejectWithValue(
         err.response?.data?.msg || "Verification failed"
@@ -60,7 +58,29 @@ export const verifyEmail = createAsyncThunk(
   }
 );
 
-// Upload Avatar
+// 🔹 Fetch Logged-in User Profile
+export const fetchProfile = createAsyncThunk(
+  "auth/fetchProfile",
+  async (_, thunkAPI) => {
+    try {
+      const state = thunkAPI.getState();
+      const token = state.auth.accessToken;
+      if (!token) throw new Error("No token found");
+
+      const res = await API.get("/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      return res.data; // user data
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.msg || "Failed to fetch profile"
+      );
+    }
+  }
+);
+
+// 🔹 Upload Avatar
 export const uploadAvatar = createAsyncThunk(
   "auth/uploadAvatar",
   async (file, thunkAPI) => {
@@ -71,17 +91,17 @@ export const uploadAvatar = createAsyncThunk(
       const formData = new FormData();
       formData.append("avatar", file);
 
-      const res = await axiosInstance.post("/users/upload-avatar", formData, {
+      const res = await API.post("/users/upload-avatar", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
 
-      return res.data; // { avatar: 'url' }
+      return res.data; // { avatar: "url" }
     } catch (err) {
       return thunkAPI.rejectWithValue(
-        err.response?.data?.message || "Upload failed"
+        err.response?.data?.msg || "Avatar upload failed"
       );
     }
   }
@@ -92,6 +112,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    // 🔹 Logout User
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
@@ -99,22 +120,26 @@ const authSlice = createSlice({
       state.successMessage = null;
       state.loading = false;
 
-      // localStorage clear
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
     },
+
+    // 🔹 Manually set access token
     setAccessToken: (state, action) => {
       state.accessToken = action.payload;
       localStorage.setItem("accessToken", action.payload);
     },
+
+    // 🔹 Clear success/error messages
     clearMessages: (state) => {
       state.error = null;
       state.successMessage = null;
     },
   },
+
   extraReducers: (builder) => {
     builder
-      // Register
+      // 🟢 Register
       .addCase(registerUser.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -122,14 +147,14 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (s, a) => {
         s.loading = false;
-        s.successMessage = a.payload.msg;
+        s.successMessage = a.payload.msg || "Registration successful";
       })
       .addCase(registerUser.rejected, (s, a) => {
         s.loading = false;
         s.error = a.payload;
       })
 
-      // Login
+      // 🟢 Login
       .addCase(loginUser.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -139,10 +164,8 @@ const authSlice = createSlice({
         s.loading = false;
         s.user = a.payload.user;
         s.accessToken = a.payload.accessToken;
-        s.error = null;
         s.successMessage = "Login successful";
 
-        // ✅ Save to localStorage
         localStorage.setItem("user", JSON.stringify(a.payload.user));
         localStorage.setItem("accessToken", a.payload.accessToken);
       })
@@ -151,22 +174,36 @@ const authSlice = createSlice({
         s.error = a.payload;
       })
 
-      // Verify Email
+      // 🟢 Verify Email
       .addCase(verifyEmail.pending, (s) => {
         s.loading = true;
         s.error = null;
-        s.successMessage = null;
       })
       .addCase(verifyEmail.fulfilled, (s, a) => {
         s.loading = false;
-        s.successMessage = a.payload.msg;
+        s.successMessage = a.payload.msg || "Email verified successfully";
       })
       .addCase(verifyEmail.rejected, (s, a) => {
         s.loading = false;
         s.error = a.payload;
       })
 
-      // Upload Avatar
+      // 🟢 Fetch Profile
+      .addCase(fetchProfile.pending, (s) => {
+        s.loading = true;
+        s.error = null;
+      })
+      .addCase(fetchProfile.fulfilled, (s, a) => {
+        s.loading = false;
+        s.user = a.payload;
+        localStorage.setItem("user", JSON.stringify(a.payload));
+      })
+      .addCase(fetchProfile.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
+      })
+
+      // 🟢 Upload Avatar
       .addCase(uploadAvatar.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -174,7 +211,8 @@ const authSlice = createSlice({
       .addCase(uploadAvatar.fulfilled, (s, a) => {
         s.loading = false;
         if (s.user) s.user.avatar = a.payload.avatar;
-        s.successMessage = "Avatar uploaded successfully";
+        s.successMessage = "Avatar updated successfully";
+        localStorage.setItem("user", JSON.stringify(s.user));
       })
       .addCase(uploadAvatar.rejected, (s, a) => {
         s.loading = false;

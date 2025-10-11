@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNotices } from "../redux/slices/noticeSlice";
 
 import Navbar from "../components/common/Navbar";
-import Footer from "../components/common/Footer";
 
 export default function PublicNoticeBoard() {
   const dispatch = useDispatch();
