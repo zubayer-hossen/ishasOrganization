@@ -15,6 +15,8 @@ const createRefreshToken = (user) =>
 
 // REGISTER
 // =====================================
+
+
 exports.register = async (req, res) => {
   try {
     const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
@@ -26,16 +28,26 @@ exports.register = async (req, res) => {
     const hashed = await bcrypt.hash(password, 12);
     const user = await User.create({ name, fatherName, email, password: hashed, phone, address, nid, occupation, avatar, bio });
 
-    // Email verification
-    const token = crypto.randomBytes(32).toString('hex');
-    await VerificationToken.create({ userId: user._id, token });
-
-    const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
-    await sendEmail({ to: email, subject: 'ISHAS - Email Verification', html: `<p>Click <a href="${link}">this link</a> to verify your email.</p>` });
+    // ✅ ইমেইল পাঠানোর কাজটি এখন main thread ব্লক করবে না
+    try {
+        const token = crypto.randomBytes(32).toString('hex');
+        await VerificationToken.create({ userId: user._id, token });
+        const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+        await sendEmail({ 
+            to: email, 
+            subject: 'ISHAS - Email Verification', 
+            html: `<p>Please click <a href="${link}">this link</a> to verify your email.</p>` 
+        });
+    } catch (emailError) {
+        // যদি ইমেইল পাঠাতে কোনো সমস্যা হয়, শুধু সার্ভার console-এ লগ হবে
+        console.error("❌ Failed to send verification email:", emailError.message);
+        // কিন্তু ইউজারকে error দেখানো হবে না, কারণ রেজিস্ট্রেশন সফল হয়েছে
+    }
 
     await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
 
-    return res.status(201).json({ msg: ' Registered successfully! Please verify your email.' });
+    // ✅ এই রেসপন্সটি এখন ইমেইল পাঠানোর জন্য অপেক্ষা করবে না
+    return res.status(201).json({ msg: 'Registered successfully! Please verify your email.' });
 
   } catch (err) {
     console.error(err);

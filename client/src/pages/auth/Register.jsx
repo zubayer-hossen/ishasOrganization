@@ -28,7 +28,7 @@ export default function Register() {
     dispatch(registerUser(formData))
       .unwrap()
       .then(() => {
-        toast.success("✅ Registration successful! Please verify your email.");
+        toast.success("Registration successful! Please verify your email.");
         navigate("/login");
       })
       .catch((err) => toast.error(`❌ ${err}`));
