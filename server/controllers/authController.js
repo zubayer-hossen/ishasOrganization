@@ -6,15 +6,22 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const AuditLog = require('../models/AuditLog');
 
-// JWT token creation
+// ===============================
+// JWT Token Creation
+// ===============================
 const createAccessToken = (user) =>
-  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
 
 const createRefreshToken = (user) =>
-  jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN });
+  jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
+  });
 
 // ===============================
-
+// Register Controller
+// ===============================
 exports.register = async (req, res) => {
   try {
     const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
@@ -59,6 +66,9 @@ exports.register = async (req, res) => {
   }
 };
 
+// ===============================
+// Email Verification
+// ===============================
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
@@ -85,33 +95,38 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
+// ===============================
+// Login Controller
+// ===============================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: "Email and password required" });
+    if (!email || !password)
+      return res.status(400).json({ msg: 'Email and password required' });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(400).json({ msg: "Invalid credentials" });
+    if (!ok) return res.status(400).json({ msg: 'Invalid credentials' });
 
-    if (!user.isVerified) return res.status(403).json({ msg: "Please verify your email first" });
+    if (!user.isVerified)
+      return res.status(403).json({ msg: 'Please verify your email first' });
 
     const accessToken = createAccessToken(user);
     const refreshToken = createRefreshToken(user);
 
-    res.cookie("jid", refreshToken, {
+    // ✅ FIXED COOKIE CONFIG (cross-site compatible)
+    res.cookie('jid', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth/refresh_token",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true, // Required for cross-site cookies
+      sameSite: 'None', // ✅ Cross-site must be None
+      path: '/', // ✅ Important: must be root
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    await AuditLog.create({ action: "login", actor: user._id, detail: {} });
+    await AuditLog.create({ action: 'login', actor: user._id, detail: {} });
 
-    // Send full user data (excluding password)
     res.json({
       accessToken,
       user: {
@@ -134,11 +149,14 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error('Login Error:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 };
 
+// ===============================
+// Refresh Token
+// ===============================
 exports.refreshToken = async (req, res) => {
   try {
     const token = req.cookies.jid;
@@ -162,11 +180,22 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
+// ===============================
+// Logout Controller
+// ===============================
 exports.logout = async (req, res) => {
   try {
-    res.clearCookie('jid', { path: '/api/auth/refresh_token' });
-    if (req.user) await AuditLog.create({ action: 'logout', actor: req.user._id, detail: {} });
-    res.json({ msg: 'Logged out' });
+    res.clearCookie('jid', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      path: '/',
+    });
+
+    if (req.user)
+      await AuditLog.create({ action: 'logout', actor: req.user._id, detail: {} });
+
+    res.json({ msg: '✅ Logged out successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
