@@ -63,7 +63,7 @@ export default function Home() {
                 বিশেষ মিডিয়া কাভারেজ
               </span>
               <h2 className="text-5xl font-black text-gray-900 mt-2 mb-3 tracking-tighter">
-                {/* হেডিং ডিজাইন: গ্লোয়িং ইফেক্ট */}✨ আমাদের গুরুত্বপূর্ণ
+                {/* হেডিং ডিজাইন: গ্লোয়িং ইফেক্ট */}আমাদের গুরুত্বপূর্ণ
                 প্রতিবেদন দেখুন
               </h2>
               <p className="text-xl text-gray-700 font-medium">
