@@ -1,4 +1,4 @@
-// server/controllers/fundController.js (Fully Updated)
+// server/controllers/fundController.js (Fully Updated and Completed)
 const Transaction = require('../models/Transaction');
 const AuditLog = require('../models/AuditLog');
 
@@ -9,7 +9,7 @@ exports.createTransaction = async (req, res) => {
         const { userId, amount, type, purpose, documents, month } = req.body;
 
         // Validation Logic:
-        // Credit-এর জন্য userId লাগবে, কিন্তু Debit-এর জন্য নয়।
+        // Credit-এর জন্য userId লাগবে, কিন্তু Debit-এর জন্য নয়।
         if (!amount || !type) {
             return res.status(400).json({ msg: 'Amount and type are required' });
         }
@@ -17,7 +17,7 @@ exports.createTransaction = async (req, res) => {
              return res.status(400).json({ msg: 'userId is required for credit transactions (donations)' });
         }
         
-        // Debit (Expense) এন্ট্রির সময় userId null করে দেওয়া যেতে পারে, 
+        // Debit (Expense) এন্ট্রির সময় userId null করে দেওয়া যেতে পারে, 
         // যদি আপনার মডেল user ফিল্ডটি required না করে।
         const finalUserId = (type === 'credit') ? userId : null; 
         
@@ -40,24 +40,34 @@ exports.createTransaction = async (req, res) => {
     }
 };
 
-// 2. Get All Transactions
-
-
-
+// 2. Get All Transactions (FIXED with .populate())
 exports.getAllTransactions = async (req, res) => {
-    try {
-        // If user is an admin, manager, etc., show everything
-        if (['admin','owner','treasurer','committee'].includes(req.user.role)) {
-            const txs = await Transaction.find()
-                /* ... populates all data ... */
-            return res.json(txs);
-        } else {
-            // 🟢 If user is a regular member, find only their transactions
-            const txs = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
-            return res.json(txs);
-        }
-    } catch (err) {   console.error(err); 
-        res.status(500).json({ msg: 'Server error' }); }
+    try {
+        // Base query to sort by newest first
+        let query = Transaction.find().sort({ date: -1 });
+        
+        // Check if the user has admin/management roles
+        const isAdmin = ['admin','owner','treasurer','committee'].includes(req.user.role);
+
+        if (isAdmin) {
+            // 🟢 FIX APPLIED: Admin/Manager can see all, with names populated.
+            query = query
+                .populate("user", "name")       // Populate Donor Name
+                .populate("createdBy", "name"); // Populate Recorder Name
+        } else {
+            // If user is a regular member, find only their transactions
+            // Note: Even members need the donor name (which is their own) to show up.
+            query = query.where({ user: req.user._id })
+                .populate("user", "name"); 
+        }
+
+        const txs = await query.exec();
+        return res.json(txs);
+
+    } catch (err) {  
+        console.error(err); 
+        res.status(500).json({ msg: 'Server error' }); 
+    }
 };
 
 // 3. Update a Transaction
@@ -71,7 +81,7 @@ exports.updateTransaction = async (req, res) => {
         
         Object.assign(tx, req.body);
         
-        // Ensure userId is null for debit if it's being updated (and if your model allows)
+        // Ensure userId is null for debit if it's being updated 
         if (tx.type === 'debit') {
             tx.user = null;
         }
@@ -103,7 +113,7 @@ exports.deleteTransaction = async (req, res) => {
     }
 };
 
-// 5. Get Total Fund Balance
+// 5. Get Total Fund Balance (Admin/Viewer Level)
 exports.getTotals = async (req, res) => {
     try {
         // total credit - total debit (admin-level)

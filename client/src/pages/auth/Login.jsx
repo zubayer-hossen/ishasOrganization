@@ -27,16 +27,19 @@ export default function Login() {
       const result = await dispatch(loginUser(formData)).unwrap();
       const user = result.user;
 
+      // Email verification check
       if (!user.isVerified) {
         toast.error("❌ Please verify your email before logging in.");
         return;
       }
 
+      // Save to localStorage
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("accessToken", result.accessToken);
 
       toast.success(`✅ Welcome back, ${user.name}!`);
 
+      // Redirect based on role
       if (["admin", "owner", "kosadhokko"].includes(user.role)) {
         navigate("/admin");
       } else {
