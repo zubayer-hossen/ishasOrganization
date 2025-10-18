@@ -1,17 +1,16 @@
-// controllers/authController.js
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const AuditLog = require("../models/AuditLog");
-const sendEmail = require("../utils/sendEmail"); // Make sure you have an email sender util
+const sendEmail = require("../utils/sendEmail"); // email sender util
 
 // ===============================
 // JWT Token Creation
 // ===============================
 const createAccessToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
   });
 
 // ===============================
@@ -19,7 +18,18 @@ const createAccessToken = (user) =>
 // ===============================
 exports.register = async (req, res) => {
   try {
-    const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
+    const {
+      name,
+      fatherName,
+      email,
+      password,
+      phone,
+      address,
+      nid,
+      occupation,
+      avatar,
+      bio,
+    } = req.body;
 
     if (!name || !email || !password || !fatherName || !phone || !address || !nid)
       return res.status(400).json({ msg: "All required fields must be provided." });
@@ -40,7 +50,7 @@ exports.register = async (req, res) => {
       occupation,
       avatar,
       bio,
-      isVerified: true, // Directly verified
+      isVerified: true, // directly verified
     });
 
     await AuditLog.create({ action: "register", actor: user._id, detail: { email } });

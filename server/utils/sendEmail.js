@@ -1,34 +1,30 @@
-// server/utils/sendEmail.js
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com", // default gmail
-  port: Number(process.env.EMAIL_PORT) || 465, // Gmail SSL port
-  secure: true, // 465 হলে অবশ্যই true দিতে হবে
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Gmail হলে App Password লাগবে
-  },
-  tls: {
-    rejectUnauthorized: false, // self-signed cert issue fix
-  },
-});
-
-async function sendEmail({ to, subject, html }) {
+const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    const info = await transporter.sendMail({
-      from: `${process.env.EMAIL_USER}`,
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"ISHAS App" <${process.env.SMTP_USER}>`,
       to,
       subject,
+      text,
       html,
     });
 
-    console.log("✅ Email sent:", info.messageId);
-    return info;
+    console.log(`✅ Email sent to ${to}`);
   } catch (err) {
-    console.error("❌ Email send error:", err.message);
-    throw new Error("Email sending failed");
+    console.error("❌ Error sending email:", err);
+    throw new Error("Email could not be sent");
   }
-}
+};
 
 module.exports = sendEmail;

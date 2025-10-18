@@ -14,9 +14,6 @@ const UserSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
     },
     password: { type: String, required: true },
-    passwordResetToken: { type: String },
-passwordResetExpires: { type: Date },
-
     phone: {
       type: String,
       default: "",
@@ -38,11 +35,15 @@ passwordResetExpires: { type: Date },
     bio: { type: String, default: "" },
     isVerified: { type: Boolean, default: false },
 
-    // 🔹 Financial Info (Default Values)
-    chadarPoriman: { type: Number, default: 25 }, // মাসিক চাঁদা
-    due: { type: Number, default: 0 }, // মোট বকেয়া
-    paidMonths: { type: [String], default: [] }, // ["Jan 2025", "Feb 2025"]
-    upcomingDue: { type: String, default: "Next Month" }, // ডিফল্ট ভ্যালু
+    // 🔹 Password Reset
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+
+    // 🔹 Financial Info
+    chadarPoriman: { type: Number, default: 25 },
+    due: { type: Number, default: 0 },
+    paidMonths: { type: [String], default: [] },
+    upcomingDue: { type: String, default: "Next Month" },
   },
   { timestamps: true }
 );
