@@ -1,4 +1,3 @@
-// src/redux/store.js
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../redux/slices/authSlice";
 import memberReducer from "../redux/slices/memberSlice";
@@ -7,25 +6,26 @@ import noticeReducer from "../redux/slices/noticeSlice";
 import blogReducer from "../redux/slices/blogSlice";
 import transactionReducer from "../redux/slices/transactionSlice";
 
-import API from "../utils/axiosInstance"; // 🔹 axios instance import
+// ✅ Correct: axios instance import করা হচ্ছে যা Interceptor-সহ কনফিগার করা
+import API from "../utils/axiosInstance"; 
 
-// Optional: axios instance কে store এ inject করা (useful for thunks)
 const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    member: memberReducer,
-    admin: adminReducer,
-    notice: noticeReducer,
-    blog: blogReducer,
-    transactions: transactionReducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      thunk: {
-        extraArgument: API, // 🔹 thunk এর ভিতর axios instance ব্যবহার করা যাবে
-      },
-      serializableCheck: false,
-    }),
+  reducer: {
+    auth: authReducer,
+    member: memberReducer,
+    admin: adminReducer,
+    notice: noticeReducer,
+    blog: blogReducer,
+    transactions: transactionReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      thunk: {
+        extraArgument: API, // ✅ thunk এর ভিতর API instance ব্যবহার করা যাবে
+      },
+      // serializableCheck disabled রাখা হলো যদি state-এ non-serializable data থাকে
+      serializableCheck: false,
+    }),
 });
 
 export default store;

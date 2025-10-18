@@ -1,150 +1,263 @@
 // src/pages/auth/Register.jsx
-import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "../../redux/slices/authSlice";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import axiosInstance from "../../utils/axiosInstance";
+import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import {
+  FiUser,
+  FiMail,
+  FiLock,
+  FiPhone,
+  FiMapPin,
+  FiBriefcase,
+  FiCreditCard,
+} from "react-icons/fi";
 
 export default function Register() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
     name: "",
     fatherName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     phone: "",
+    nid: "",
     address: "",
     occupation: "",
   });
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    dispatch(registerUser(formData))
-      .unwrap()
-      .then(() => {
-        toast.success("✅ Registration successful! Please verify your email.");
-        navigate("/login");
-      })
-      .catch((err) => toast.error(`❌ ${err}`));
   };
 
-  useEffect(() => {
-    if (error) toast.error(`❌ ${error}`);
-  }, [error]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const {
+      name,
+      fatherName,
+      email,
+      password,
+      confirmPassword,
+      phone,
+      address,
+      nid,
+    } = formData;
+
+    // ✅ Required field validation
+    if (
+      !name ||
+      !fatherName ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !phone ||
+      !address ||
+      !nid
+    ) {
+      toast.error("সব আবশ্যক ঘর পূরণ করুন!");
+      return;
+    }
+
+    // ✅ Password match validation
+    if (password !== confirmPassword) {
+      toast.error("পাসওয়ার্ড মিলছে না!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axiosInstance.post("/auth/register", formData);
+      toast.success(res.data.msg);
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      const message =
+        err.response?.data?.msg || "Server error. Try again later.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-400 p-6 relative overflow-hidden">
-      {/* Background Floating Circles */}
-      <div className="absolute w-72 h-72 bg-pink-300 opacity-30 rounded-full blur-3xl top-10 left-10 animate-pulse"></div>
-      <div className="absolute w-96 h-96 bg-indigo-400 opacity-25 rounded-full blur-3xl bottom-10 right-10 animate-pulse"></div>
-
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 px-4">
       <motion.div
-        initial={{ opacity: 0, y: 80 }}
+        initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="bg-white/20 backdrop-blur-2xl border border-white/30 shadow-2xl rounded-3xl p-8 w-full max-w-lg text-white"
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
       >
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="flex justify-center items-center mb-3">
-            <UserPlus className="w-12 h-12 text-white drop-shadow-md" />
-          </div>
-          <h2 className="text-4xl font-extrabold tracking-wide">
-            Join <span className="text-yellow-300">ISHAS 🕊️</span>
-          </h2>
-          <p className="text-sm mt-2 text-indigo-100">
-            Become part of our growing family of change makers.
-          </p>
+        {/* Left Gradient Card */}
+        <div className="md:w-1/2 bg-gradient-to-tr from-purple-700 to-pink-600 text-white p-10 flex flex-col justify-center items-center text-center relative">
+          <motion.h1
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl font-extrabold mb-4"
+          >
+            ISHAS
+          </motion.h1>
+          <motion.p
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-lg font-light mb-6"
+          >
+            "Together We Build a Better Future"
+          </motion.p>
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.6 }}
+            className="p-5 border-2 border-white rounded-full"
+          >
+            <FiUser className="w-12 h-12" />
+          </motion.div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[
-            { label: "Full Name", name: "name", type: "text", required: true },
-            { label: "Father's Name", name: "fatherName", type: "text" },
-            {
-              label: "Email Address",
-              name: "email",
-              type: "email",
-              required: true,
-            },
-            { label: "Phone Number", name: "phone", type: "text" },
-            { label: "Address", name: "address", type: "text" },
-            { label: "Occupation", name: "occupation", type: "text" },
-          ].map((input) => (
-            <div key={input.name}>
-              <label className="block text-sm font-semibold text-indigo-100 mb-1">
-                {input.label}
-              </label>
-              <input
-                type={input.type}
-                name={input.name}
-                value={formData[input.name]}
+        {/* Right Form */}
+        <div className="md:w-1/2 p-10">
+          <h2 className="text-3xl font-bold text-gray-800 text-center mb-6 border-b pb-3">
+            নতুন সদস্য নিবন্ধন
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <InputField
+              icon={<FiUser />}
+              label="পুরো নাম *"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="আপনার নাম লিখুন"
+            />
+            <InputField
+              icon={<FiUser />}
+              label="পিতার নাম *"
+              name="fatherName"
+              value={formData.fatherName}
+              onChange={handleChange}
+              placeholder="পিতার নাম লিখুন"
+            />
+            <InputField
+              icon={<FiMail />}
+              label="ইমেইল *"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="example@mail.com"
+            />
+            <InputField
+              icon={<FiPhone />}
+              label="মোবাইল নাম্বার *"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="01XXXXXXXXX"
+            />
+            <InputField
+              icon={<FiCreditCard />}
+              label="এনআইডি (ঐচ্ছিক)"
+              name="nid"
+              value={formData.nid}
+              onChange={handleChange}
+              placeholder="NID নম্বর"
+            />
+            <InputField
+              icon={<FiMapPin />}
+              label="ঠিকানা *"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="বর্তমান ঠিকানা লিখুন"
+            />
+            <InputField
+              icon={<FiBriefcase />}
+              label="পেশা"
+              name="occupation"
+              value={formData.occupation}
+              onChange={handleChange}
+              placeholder="পেশার নাম লিখুন"
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <InputField
+                icon={<FiLock />}
+                label="পাসওয়ার্ড *"
+                type="password"
+                name="password"
+                value={formData.password}
                 onChange={handleChange}
-                required={input.required}
-                className="w-full bg-white/20 border border-white/40 text-white placeholder-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-yellow-300 focus:border-yellow-300 outline-none transition-all"
-                placeholder={`Enter ${input.label}`}
+                placeholder="******"
+              />
+              <InputField
+                icon={<FiLock />}
+                label="পাসওয়ার্ড নিশ্চিত করুন *"
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="******"
               />
             </div>
-          ))}
 
-          {/* Password Input */}
-          <div className="relative">
-            <label className="block text-sm font-semibold text-indigo-100 mb-1">
-              Password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/20 border border-white/40 text-white placeholder-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-yellow-300 focus:border-yellow-300 outline-none pr-10"
-              placeholder="Enter your password"
-            />
-            <span
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-10 cursor-pointer text-gray-200 hover:text-yellow-300 transition"
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 font-bold text-white rounded-xl shadow-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 flex justify-center items-center ${
+                loading ? "opacity-60 cursor-not-allowed" : ""
+              }`}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </span>
-          </div>
+              {loading ? "Registering..." : "রেজিস্টার করুন"}
+            </button>
+          </form>
 
-          {/* Submit Button */}
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            disabled={loading}
-            className={`w-full py-3 mt-4 rounded-xl font-semibold text-indigo-900 bg-yellow-300 shadow-lg hover:bg-yellow-400 transition ${
-              loading && "opacity-70 cursor-not-allowed"
-            }`}
-          >
-            {loading ? "Registering..." : "Register Now"}
-          </motion.button>
-        </form>
-
-        {/* Footer */}
-        <p className="text-sm mt-6 text-center text-indigo-100">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-yellow-300 font-semibold hover:underline"
-          >
-            Login
-          </Link>
-        </p>
+          <p className="text-center text-gray-600 text-sm mt-5">
+            ইতিমধ্যেই একাউন্ট আছে?{" "}
+            <Link
+              to="/login"
+              className="text-purple-700 font-medium hover:underline"
+            >
+              লগইন করুন
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   );
 }
+
+// ====================
+// Reusable InputField Component
+// ====================
+const InputField = ({
+  icon,
+  label,
+  name,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+}) => (
+  <div className="relative">
+    {icon && (
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+        {icon}
+      </div>
+    )}
+    <label className="block text-gray-700 mb-1 font-medium">{label}</label>
+    <input
+      type={type}
+      name={name}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className={`w-full border border-gray-300 rounded-xl px-4 py-2 pl-10 focus:ring-2 focus:ring-purple-500 outline-none transition-all duration-300`}
+    />
+  </div>
+);

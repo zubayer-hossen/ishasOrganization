@@ -1,3 +1,4 @@
+// server/app.js
 require('dotenv').config();
 const express = require('express');
 const app = express();
@@ -13,22 +14,12 @@ const errorHandler = require('./middlewares/errorHandler');
 // =====================
 connectDB();
 
-// 💡 সমাধান: CORS হোয়াইটলিস্ট (Whitelist) তৈরি করা।
-// এটি স্ল্যাশ (/) জনিত সমস্যা এড়াতে সাহায্য করবে।
+// Allow frontend requests with credentials
 const allowedOrigins = [
-    'https://ishasorganization.netlify.app', // স্ল্যাশ ছাড়া
-    'https://ishasorganization.netlify.app/', // স্ল্যাশসহ
-    'http://localhost:3000', // লোকাল ডেভেলপমেন্টের জন্য
-    'http://localhost:5173', // যদি আপনি Vite ব্যবহার করেন
+  'https://ishasorganization.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
 ];
-
-// CLIENT_URL এনভায়রনমেন্ট ভ্যারিয়েবল থাকলে, সেটিও হোয়াইটলিস্টে যোগ করা হবে।
-if (process.env.CLIENT_URL) {
-    const cleanUrl = process.env.CLIENT_URL.replace(/\/$/, ''); // শেষের স্ল্যাশ মুছে
-    allowedOrigins.push(cleanUrl);
-    allowedOrigins.push(cleanUrl + '/');
-}
-
 
 // =====================
 // Middleware
@@ -39,26 +30,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); 
 
 // Enable CORS for frontend using the dynamic whitelist
+
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or postman)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log(`CORS Error: Origin ${origin} not allowed by the server.`);
-            callback(new Error('Not allowed by CORS'), false);
-        }
-    },
-    credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // postman / curl
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true, // ✅ must for cookies
 }));
 
-// Rate limiting... (rest of the code remains the same)
+// Rate limiting...
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 200, 
-    message: 'Too many requests from this IP, please try again later.'
+    windowMs: 15 * 60 * 1000, 
+    max: 200, 
+    message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', apiLimiter);
 
@@ -76,7 +62,7 @@ app.use('/api/notices', require('./routes/notice'));
 // Health Check...
 // =====================
 app.get('/', (req, res) => {
-    res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
+    res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
 });
 
 // =====================

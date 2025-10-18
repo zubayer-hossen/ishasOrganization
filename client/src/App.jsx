@@ -20,6 +20,8 @@ import RoleRoute from "./components/routes/RoleRoute";
 import Home from "./pages/Home";
 import FundManagement from "./pages/admin/FundManagement";
 import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
         <Route path="/blogs/:id" element={<BlogDetails />} />
         <Route path="/blogs" element={<Blogs />} />
         <Route path="/about" element={<About />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

@@ -14,6 +14,9 @@ const UserSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
     },
     password: { type: String, required: true },
+    passwordResetToken: { type: String },
+passwordResetExpires: { type: Date },
+
     phone: {
       type: String,
       default: "",
@@ -36,7 +39,7 @@ const UserSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
 
     // 🔹 Financial Info (Default Values)
-    chadarPoriman: { type: Number, default: 50 }, // মাসিক চাঁদা
+    chadarPoriman: { type: Number, default: 25 }, // মাসিক চাঁদা
     due: { type: Number, default: 0 }, // মোট বকেয়া
     paidMonths: { type: [String], default: [] }, // ["Jan 2025", "Feb 2025"]
     upcomingDue: { type: String, default: "Next Month" }, // ডিফল্ট ভ্যালু

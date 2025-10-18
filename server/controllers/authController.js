@@ -1,22 +1,17 @@
-const User = require('../models/User');
-const VerificationToken = require('../models/VerificationToken');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const sendEmail = require('../utils/sendEmail');
-const AuditLog = require('../models/AuditLog');
+// controllers/authController.js
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const AuditLog = require("../models/AuditLog");
+const sendEmail = require("../utils/sendEmail"); // Make sure you have an email sender util
 
 // ===============================
 // JWT Token Creation
 // ===============================
 const createAccessToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
-
-const createRefreshToken = (user) =>
-  jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
+    expiresIn: process.env.JWT_EXPIRES_IN || "1d",
   });
 
 // ===============================
@@ -25,11 +20,12 @@ const createRefreshToken = (user) =>
 exports.register = async (req, res) => {
   try {
     const { name, fatherName, email, password, phone, address, nid, occupation, avatar, bio } = req.body;
-    if (!name || !email || !password)
-      return res.status(400).json({ msg: 'Name, email and password are required' });
+
+    if (!name || !email || !password || !fatherName || !phone || !address || !nid)
+      return res.status(400).json({ msg: "All required fields must be provided." });
 
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ msg: 'Email already registered' });
+    if (exists) return res.status(400).json({ msg: "Email already registered" });
 
     const hashed = await bcrypt.hash(password, 12);
 
@@ -44,54 +40,18 @@ exports.register = async (req, res) => {
       occupation,
       avatar,
       bio,
+      isVerified: true, // Directly verified
     });
 
-    // Email verification
-    const token = crypto.randomBytes(32).toString('hex');
-    await VerificationToken.create({ userId: user._id, token });
+    await AuditLog.create({ action: "register", actor: user._id, detail: { email } });
 
-    const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
-    await sendEmail({
-      to: email,
-      subject: 'ISHAS - Email Verification',
-      html: `<p>Click <a href="${link}">this link</a> to verify your email. Link valid for 24 hours.</p>`,
+    res.status(201).json({
+      msg: "✅ Registered successfully!",
+      user: { id: user._id, name: user.name, email: user.email },
     });
-
-    await AuditLog.create({ action: 'register', actor: user._id, detail: { email } });
-
-    res.status(201).json({ msg: '✅ Registered successfully! Please check your email for verification.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
-  }
-};
-
-// ===============================
-// Email Verification
-// ===============================
-exports.verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.query;
-    if (!token) return res.status(400).json({ msg: 'Invalid token' });
-
-    const record = await VerificationToken.findOne({ token });
-    if (!record) return res.status(400).json({ msg: 'Token expired or invalid' });
-
-    const user = await User.findById(record.userId);
-    if (!user) return res.status(400).json({ msg: 'User not found' });
-
-    if (user.isVerified) return res.status(400).json({ msg: 'Email already verified' });
-
-    user.isVerified = true;
-    await user.save();
-    await VerificationToken.deleteOne({ _id: record._id });
-
-    await AuditLog.create({ action: 'verify-email', actor: user._id, detail: { email: user.email } });
-
-    return res.json({ msg: '✅ Email verified successfully. You may now login.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: "Server error during registration" });
   }
 };
 
@@ -101,31 +61,17 @@ exports.verifyEmail = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ msg: 'Email and password required' });
+    if (!email || !password) return res.status(400).json({ msg: "Email and password required" });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(400).json({ msg: 'Invalid credentials' });
-
-    if (!user.isVerified)
-      return res.status(403).json({ msg: 'Please verify your email first' });
+    if (!ok) return res.status(400).json({ msg: "Invalid credentials" });
 
     const accessToken = createAccessToken(user);
-    const refreshToken = createRefreshToken(user);
 
-    // ✅ FIXED COOKIE CONFIG (cross-site compatible)
-    res.cookie('jid', refreshToken, {
-      httpOnly: true,
-      secure: true, // Required for cross-site cookies
-      sameSite: 'None', // ✅ Cross-site must be None
-      path: '/', // ✅ Important: must be root
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    await AuditLog.create({ action: 'login', actor: user._id, detail: {} });
+    await AuditLog.create({ action: "login", actor: user._id, detail: {} });
 
     res.json({
       accessToken,
@@ -142,41 +88,11 @@ exports.login = async (req, res) => {
         avatar: user.avatar,
         bio: user.bio,
         isVerified: user.isVerified,
-        chadarPoriman: user.chadarPoriman,
-        due: user.due,
-        paidMonths: user.paidMonths,
-        upcomingDue: user.upcomingDue,
       },
     });
   } catch (err) {
-    console.error('Login Error:', err);
-    res.status(500).json({ msg: 'Server error' });
-  }
-};
-
-// ===============================
-// Refresh Token
-// ===============================
-exports.refreshToken = async (req, res) => {
-  try {
-    const token = req.cookies.jid;
-    if (!token) return res.status(401).json({ ok: false });
-
-    let payload;
-    try {
-      payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-    } catch (e) {
-      return res.status(401).json({ ok: false });
-    }
-
-    const user = await User.findById(payload.id);
-    if (!user) return res.status(401).json({ ok: false });
-
-    const newAccess = createAccessToken(user);
-    return res.json({ accessToken: newAccess });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error("Login Error:", err);
+    res.status(500).json({ msg: "Server error during login" });
   }
 };
 
@@ -185,19 +101,79 @@ exports.refreshToken = async (req, res) => {
 // ===============================
 exports.logout = async (req, res) => {
   try {
-    res.clearCookie('jid', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'None',
-      path: '/',
-    });
-
-    if (req.user)
-      await AuditLog.create({ action: 'logout', actor: req.user._id, detail: {} });
-
-    res.json({ msg: '✅ Logged out successfully' });
+    await AuditLog.create({ action: "logout", actor: req.user?._id, detail: {} });
+    res.json({ msg: "✅ Logged out successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: "Server error during logout" });
+  }
+};
+
+// ===============================
+// Forgot Password Controller
+// ===============================
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "No user found with this email" });
+
+    // Create reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const message = `Hi ${user.name},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link expires in 30 minutes.`;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Request",
+      text: message,
+    });
+
+    res.json({ msg: "✅ Password reset email sent successfully" });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ msg: "Server error during password reset request" });
+  }
+};
+
+// ===============================
+// Reset Password Controller
+// ===============================
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!password || !confirmPassword) return res.status(400).json({ msg: "Both password fields are required" });
+    if (password !== confirmPassword) return res.status(400).json({ msg: "Passwords do not match" });
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
+
+    user.password = await bcrypt.hash(password, 12);
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    await AuditLog.create({ action: "resetPassword", actor: user._id, detail: {} });
+
+    res.json({ msg: "✅ Password has been reset successfully" });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ msg: "Server error during password reset" });
   }
 };
