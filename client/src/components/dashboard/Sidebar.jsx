@@ -38,17 +38,17 @@ export default function Sidebar({ collapsed }) {
         <SidebarLink
           to="/dashboard/transactions"
           icon={<Wallet size={20} />}
-          label="Transactions"
+          label="My Transactions"
           collapsed={collapsed}
         />
-        {user?.role !== "member" && (
+        {/* {user?.role !== "member" && (
           <SidebarLink
             to="/dashboard/transactions/add"
             icon={<PlusCircle size={20} />}
             label="Add Transaction"
             collapsed={collapsed}
           />
-        )}
+        )} */}
       </div>
 
       {/* Footer */}
