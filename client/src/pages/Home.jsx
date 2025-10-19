@@ -61,7 +61,10 @@ export default function Home() {
   ];
 
   // Test Case: Empty array (shows clock)
-  const headlines = [""];
+  const headlines = [
+    "সাম্প্রতিক সময়ে আমাদের এলাকার জন্নাতুল বাকী ঈদগাহকে কেন্দ্র করে যে বিতর্ক, বিভ্রান্তি ও অনাকাঙ্ক্ষিত পরিস্থিতি তৈরি হয়েছে,ইশাস সংগঠন উক্ত ঘটনার সঙ্গে কোনোভাবেই জড়িত নয় এবং থাকবে না।",
+    "এই ঘটনার সঙ্গে সংগঠনের নাম ব্যবহার, প্রচারণা বা সম্পৃক্ততার কোনো অভিযোগ সম্পূর্ণ ভিত্তিহীন ও বিভ্রান্তিকর।",
+  ];
 
   // Headlines FIX: Check for valid strings and prepare the data
   const validHeadlines = headlines.filter((h) => h && h.trim().length > 0);
