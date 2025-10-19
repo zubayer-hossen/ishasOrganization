@@ -61,6 +61,7 @@ function App() {
               <Route path="blogs" element={<BlogManagement />} />
               {/* 🟢 FIXED: Changed path from "fund" to "funds" for consistency */}
               <Route path="funds" element={<FundManagement />} />
+              <Route path="transactions" element={<Transactions />} />
             </Route>
           </Route>
         </Route>

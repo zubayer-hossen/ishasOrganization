@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../redux/slices/blogSlice";
-import axios from "../../utils/axios";
+// ✅ সঠিক Axios Instance import করুন
+import axios from "../../utils/axiosInstance";
 import { toast } from "react-toastify";
 
 export default function BlogManagement() {
   const dispatch = useDispatch();
+  // ধরে নেওয়া হচ্ছে 'blog' slice এ blogs, loading, error আছে
   const { blogs, loading, error } = useSelector((state) => state.blog);
 
   const [form, setForm] = useState({
@@ -14,32 +16,56 @@ export default function BlogManagement() {
     image: "",
   });
 
+  // ℹ️ এই state টি Update Modal বা Form হ্যান্ডেল করার জন্য ব্যবহার করা যেতে পারে,
+  // তবে সহজ রাখার জন্য এখানে শুধু Add ও Delete দেখানো হলো।
+  // const [isEditing, setIsEditing] = useState(false);
+  // const [currentBlog, setCurrentBlog] = useState(null);
+
   useEffect(() => {
+    // ব্লগ লোড করতে হবে একবার
     dispatch(fetchBlogs());
   }, [dispatch]);
 
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // ================= ADD BLOG FUNCTION =================
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/blogs", form, {
-        headers: { "Content-Type": "application/json" },
-      });
-      toast.success("Blog added successfully");
+      // ✅ এখানে আলাদা করে Headers বা Token সেট করার প্রয়োজন নেই,
+      // কারণ axiosInstance.js-এ Interceptor স্বয়ংক্রিয়ভাবে তা হ্যান্ডেল করবে।
+      const res = await axios.post("/blogs", form);
+
+      // সার্ভার রেসপন্স 201 হলে
+      toast.success("Blog added successfully! 🥳");
       setForm({ title: "", body: "", image: "" });
-      dispatch(fetchBlogs());
+      dispatch(fetchBlogs()); // নতুন ব্লগ সহ তালিকা আপডেট করুন
     } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to add blog");
+      console.error("Create Blog Error:", err);
+      // 'unauthorized no token' error হলেও Interceptor সেটাকে Refresh Token দিয়ে
+      // handle করার চেষ্টা করবে। যদি ব্যর্থ হয়, তবে লগআউট হবে বা error দেবে।
+      toast.error(
+        err.response?.data?.msg || "Failed to add blog. Check credentials/role."
+      );
     }
   };
 
+  // ================= DELETE BLOG FUNCTION =================
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this blog?")) {
       try {
+        // ✅ এখানেও Headers বা Token সেট করার প্রয়োজন নেই।
         await axios.delete(`/blogs/${id}`);
-        toast.success("Blog deleted successfully");
-        dispatch(fetchBlogs());
+
+        toast.success("Blog deleted successfully! 🗑️");
+        dispatch(fetchBlogs()); // তালিকা আপডেট করুন
       } catch (err) {
-        toast.error(err.response?.data?.msg || "Failed to delete blog");
+        console.error("Delete Blog Error:", err);
+        toast.error(
+          err.response?.data?.msg || "Failed to delete blog. Check permissions."
+        );
       }
     }
   };
@@ -58,24 +84,27 @@ export default function BlogManagement() {
       <form onSubmit={handleSubmit} className="mb-6 space-y-4">
         <input
           type="text"
+          name="title" // name prop যোগ করা হয়েছে
           placeholder="Title"
           value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
           className="border p-2 rounded w-full"
           required
         />
         <textarea
+          name="body" // name prop যোগ করা হয়েছে
           placeholder="Body"
           value={form.body}
-          onChange={(e) => setForm({ ...form, body: e.target.value })}
+          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
           className="border p-2 rounded w-full"
           rows={4}
         />
         <input
           type="text"
+          name="image" // name prop যোগ করা হয়েছে
           placeholder="Image URL"
           value={form.image}
-          onChange={(e) => setForm({ ...form, image: e.target.value })}
+          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
           className="border p-2 rounded w-full"
         />
         <button
@@ -142,6 +171,10 @@ export default function BlogManagement() {
                   })}
                 </td>
                 <td className="px-6 py-4 space-x-2">
+                  {/* আপনি এখানে একটি Edit Button যোগ করতে পারেন */}
+                  {/* <button className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                    Edit
+                  </button> */}
                   <button
                     onClick={() => handleDelete(b._id)}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"

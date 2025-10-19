@@ -29,6 +29,17 @@ export default function Sidebar() {
       </NavLink>
 
       <NavLink
+        to="/admin/transactions"
+        className={({ isActive }) =>
+          `mb-3 px-3 py-2 rounded ${
+            isActive ? "bg-gray-700" : "hover:bg-gray-700"
+          }`
+        }
+      >
+        My Transactions
+      </NavLink>
+
+      <NavLink
         to="/admin/users"
         className={({ isActive }) =>
           `mb-3 px-3 py-2 rounded ${
