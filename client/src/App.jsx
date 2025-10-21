@@ -21,7 +21,9 @@ import Home from "./pages/Home";
 import FundManagement from "./pages/admin/FundManagement";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
+
+import ResetPasswordManual from "./pages/auth/ResetPasswordManual";
+import NotFound from "./components/common/NotFound";
 
 function App() {
   return (
@@ -37,7 +39,12 @@ function App() {
         <Route path="/blogs" element={<Blogs />} />
         <Route path="/about" element={<About />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/reset-password-manual"
+          element={<ResetPasswordManual />}
+        />
+
+        <Route path="*" element={<NotFound />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

@@ -1,10 +1,11 @@
+// models/User.js
 const mongoose = require('mongoose');
+const bcrypt = require("bcryptjs"); // pre-save hashing
 
 const UserSchema = new mongoose.Schema(
   {
-    // 🔹 Basic Info
     name: { type: String, required: true, trim: true },
-    fatherName: { type: String, default: "" },
+    fatherName: { type: String, default: "", trim: true },
     email: {
       type: String,
       required: true,
@@ -13,39 +14,75 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
     },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false }, // hidden by default
     phone: {
       type: String,
       default: "",
+      trim: true,
       match: [/^\d{10,15}$/, 'Please provide a valid phone number'],
     },
-    nid: { type: String },
-    address: { type: String, default: "" },
-    occupation: { type: String, default: "" },
+    nid: { type: String, trim: true },
+    address: { type: String, default: "", trim: true },
+    occupation: { type: String, default: "", trim: true },
 
-    // 🔹 Role
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'],
+      default: 'Unknown',
+      trim: true,
+    },
+
     role: {
       type: String,
       enum: ['member', 'committee', 'treasurer', 'admin', 'owner', 'kosadhokko'],
       default: 'member',
     },
 
-    // 🔹 Profile
     avatar: { type: String, default: "" },
     bio: { type: String, default: "" },
     isVerified: { type: Boolean, default: false },
 
-    // 🔹 Password Reset
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
+
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    // 🔹 Financial Info
-    chadarPoriman: { type: Number, default: 25 },
-    due: { type: Number, default: 0 },
-    paidMonths: { type: [String], default: [] },
-    upcomingDue: { type: String, default: "Next Month" },
+    chadarPoriman: { 
+        type: Number, 
+        default: 25,
+        min: [0, 'Chada amount cannot be negative']
+    },
+    due: { 
+        type: Number, 
+        default: 0,
+        min: [0, 'Due amount cannot be negative']
+    },
+    paidMonths: { 
+        type: [String], 
+        default: [] 
+    },
+    upcomingDue: { 
+        type: String, 
+        default: "Next Month" 
+    },
   },
   { timestamps: true }
 );
+
+// Hash password before saving (only when modified or new)
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
+    return next();
+  }
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    // clear any transient reset tokens if desired (optional)
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import BannerSlider from "../components/common/BannerSlider";
@@ -12,6 +14,8 @@ import {
   NewspaperIcon,
   TrophyIcon,
 } from "@heroicons/react/24/outline";
+
+import FacebookStatsCard from "../components/social/FacebookStatsCard";
 
 // ======================================================================
 // 🆕 CONDITIONAL DIGITAL CLOCK COMPONENT (Overflow-Safe)
@@ -62,8 +66,7 @@ export default function Home() {
 
   // Test Case: Empty array (shows clock)
   const headlines = [
-    "সাম্প্রতিক সময়ে আমাদের এলাকার জন্নাতুল বাকী ঈদগাহকে কেন্দ্র করে যে বিতর্ক, বিভ্রান্তি ও অনাকাঙ্ক্ষিত পরিস্থিতি তৈরি হয়েছে,ইশাস সংগঠন উক্ত ঘটনার সঙ্গে কোনোভাবেই জড়িত নয় এবং থাকবে না।",
-    "এই ঘটনার সঙ্গে সংগঠনের নাম ব্যবহার, প্রচারণা বা সম্পৃক্ততার কোনো অভিযোগ সম্পূর্ণ ভিত্তিহীন ও বিভ্রান্তিকর।",
+    "অত্যন্ত গুরুত্বপূর্ণ প্রয়োজনে আজ (২১-১০-২০২৫) এশার নামাজের পর স্থানীয় ভিতরের জামে মসজিদে ইশাস সংগঠনের একটি জরুরি সভা অনুষ্ঠিত হবে।",
   ];
 
   // Headlines FIX: Check for valid strings and prepare the data
@@ -134,6 +137,10 @@ export default function Home() {
               ) : (
                 <DigitalClock message={headlinesData[0]} />
               )}
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl shadow-2xl ...">
+              <FacebookStatsCard />
             </div>
 
             {/* নোটিশ বোর্ড */}
@@ -259,6 +266,106 @@ export default function Home() {
           </section>
         )}
       </div>
+      {/* -------------------- 🏆 ৫. সদস্যদের অর্জন ও পরিসংখ্যান -------------------- */}
+      <section className="relative my-20 py-16 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white overflow-hidden rounded-3xl shadow-2xl shadow-purple-900/40 border-4 border-white/10">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <motion.h2
+              initial={{ y: 40, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="text-5xl font-extrabold mb-4 drop-shadow-lg"
+            >
+              🎖️ সংগঠনের অর্জন ও পরিসংখ্যান
+            </motion.h2>
+            <p className="text-lg text-purple-100">
+              আমাদের সদস্যদের ঐক্য, পরিশ্রম ও প্রচেষ্টার অসাধারণ কিছু অর্জন
+              এখানে তুলে ধরা হলো।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {[
+              {
+                label: "সক্রিয় সদস্য",
+                value: 180,
+                color: "from-cyan-400 to-blue-500",
+              },
+              {
+                label: "সম্পন্ন প্রকল্প",
+                value: 24,
+                color: "from-amber-400 to-orange-500",
+              },
+              {
+                label: "সম্মাননা পুরস্কার",
+                value: 12,
+                color: "from-pink-400 to-rose-500",
+              },
+              {
+                label: "স্বেচ্ছাসেবী উদ্যোগ",
+                value: 35,
+                color: "from-green-400 to-emerald-500",
+              },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: i * 0.2 }}
+                viewport={{ once: true }}
+                className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center shadow-2xl hover:scale-105 hover:shadow-cyan-400/40 transition-all duration-500"
+              >
+                <div
+                  className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${stat.color} opacity-10 blur-xl`}
+                ></div>
+                <motion.h3
+                  initial={{ scale: 0.5 }}
+                  whileInView={{ scale: 1 }}
+                  transition={{ duration: 0.8 }}
+                  viewport={{ once: true }}
+                  className="text-6xl font-extrabold text-white drop-shadow-lg"
+                >
+                  {stat.value.toLocaleString()}
+                </motion.h3>
+                <p className="text-lg font-semibold mt-3 text-purple-100">
+                  {stat.label}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Floating Glow Orbs */}
+        <motion.div
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -20, 0],
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-10 left-10 w-40 h-40 rounded-full bg-cyan-400 blur-3xl opacity-30"
+        />
+        <motion.div
+          animate={{
+            x: [0, -30, 0],
+            y: [0, 20, 0],
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-10 right-10 w-52 h-52 rounded-full bg-pink-400 blur-3xl opacity-30"
+        />
+      </section>
 
       <Footer />
     </div>

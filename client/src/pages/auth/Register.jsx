@@ -1,20 +1,12 @@
-// src/pages/auth/Register.jsx
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axiosInstance from "../../utils/axiosInstance";
-import { toast } from "react-hot-toast";
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  FiUser,
-  FiMail,
-  FiLock,
-  FiPhone,
-  FiMapPin,
-  FiBriefcase,
-  FiCreditCard,
-} from "react-icons/fi";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "./Register.css"; // Custom CSS file
 
-export default function Register() {
+const Register = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -22,242 +14,250 @@ export default function Register() {
     fatherName: "",
     email: "",
     password: "",
-    confirmPassword: "",
     phone: "",
-    nid: "",
     address: "",
+    nid: "",
     occupation: "",
+    bloodGroup: "Unknown",
+    avatar: "",
+    bio: "",
   });
 
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // ✅ Input Change Handler
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ✅ Basic Validation
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Full name is required!";
+    if (!formData.fatherName.trim())
+      newErrors.fatherName = "Father’s name is required!";
+    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+      newErrors.email = "Valid email required!";
+    if (formData.password.length < 6)
+      newErrors.password = "Password must be at least 6 characters!";
+    if (!formData.phone.match(/^[0-9]{10,15}$/))
+      newErrors.phone = "Valid phone number required!";
+    if (!formData.nid.trim()) newErrors.nid = "NID is required!";
+    if (!formData.address.trim()) newErrors.address = "Address is required!";
+    return newErrors;
+  };
+
+  // ✅ Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const {
-      name,
-      fatherName,
-      email,
-      password,
-      confirmPassword,
-      phone,
-      address,
-      nid,
-    } = formData;
-
-    // ✅ Required field validation
-    if (
-      !name ||
-      !fatherName ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !phone ||
-      !address ||
-      !nid
-    ) {
-      toast.error("সব আবশ্যক ঘর পূরণ করুন!");
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error("Please correct the highlighted errors!");
       return;
     }
 
-    // ✅ Password match validation
-    if (password !== confirmPassword) {
-      toast.error("পাসওয়ার্ড মিলছে না!");
-      return;
-    }
+    setErrors({});
+    setLoading(true);
 
     try {
-      setLoading(true);
-      const res = await axiosInstance.post("/auth/register", formData);
-      toast.success(res.data.msg);
-      navigate("/login");
+      const res = await axios.post(
+        "https://ishasorganizationbackend.onrender.com/api/auth/register",
+        formData
+      );
+      toast.success(res.data.msg || "Registration successful!");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      console.error(err);
-      const message =
-        err.response?.data?.msg || "Server error. Try again later.";
-      toast.error(message);
+      toast.error(err.response?.data?.msg || "Registration failed!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 px-4">
+    <div className="register-bg min-h-screen flex justify-center items-center px-4">
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
+        initial={{ opacity: 0, scale: 0.9, y: 50 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="register-card w-full max-w-4xl p-10 rounded-2xl"
       >
-        {/* Left Gradient Card */}
-        <div className="md:w-1/2 bg-gradient-to-tr from-purple-700 to-pink-600 text-white p-10 flex flex-col justify-center items-center text-center relative">
-          <motion.h1
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-5xl font-extrabold mb-4"
-          >
-            ISHAS
-          </motion.h1>
-          <motion.p
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-lg font-light mb-6"
-          >
-            "Together We Build a Better Future"
-          </motion.p>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.6 }}
-            className="p-5 border-2 border-white rounded-full"
-          >
-            <FiUser className="w-12 h-12" />
-          </motion.div>
-        </div>
+        <h2 className="text-3xl font-bold text-center text-white mb-6 drop-shadow-lg">
+          ✨ Create Your ISHAS Account
+        </h2>
 
-        {/* Right Form */}
-        <div className="md:w-1/2 p-10">
-          <h2 className="text-3xl font-bold text-gray-800 text-center mb-6 border-b pb-3">
-            নতুন সদস্য নিবন্ধন
-          </h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Name Fields */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <input
+                type="text"
+                name="name"
+                placeholder="Full Name *"
+                value={formData.name}
+                onChange={handleChange}
+                className={`input ${errors.name ? "input-error" : ""}`}
+              />
+              {errors.name && <p className="error-text">{errors.name}</p>}
+            </div>
+            <div>
+              <input
+                type="text"
+                name="fatherName"
+                placeholder="Father’s Name *"
+                value={formData.fatherName}
+                onChange={handleChange}
+                className={`input ${errors.fatherName ? "input-error" : ""}`}
+              />
+              {errors.fatherName && (
+                <p className="error-text">{errors.fatherName}</p>
+              )}
+            </div>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <InputField
-              icon={<FiUser />}
-              label="পুরো নাম *"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="আপনার নাম লিখুন"
-            />
-            <InputField
-              icon={<FiUser />}
-              label="পিতার নাম *"
-              name="fatherName"
-              value={formData.fatherName}
-              onChange={handleChange}
-              placeholder="পিতার নাম লিখুন"
-            />
-            <InputField
-              icon={<FiMail />}
-              label="ইমেইল *"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="example@mail.com"
-            />
-            <InputField
-              icon={<FiPhone />}
-              label="মোবাইল নাম্বার *"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="01XXXXXXXXX"
-            />
-            <InputField
-              icon={<FiCreditCard />}
-              label="এনআইডি (ঐচ্ছিক)"
-              name="nid"
-              value={formData.nid}
-              onChange={handleChange}
-              placeholder="NID নম্বর"
-            />
-            <InputField
-              icon={<FiMapPin />}
-              label="ঠিকানা *"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="বর্তমান ঠিকানা লিখুন"
-            />
-            <InputField
-              icon={<FiBriefcase />}
-              label="পেশা"
-              name="occupation"
-              value={formData.occupation}
-              onChange={handleChange}
-              placeholder="পেশার নাম লিখুন"
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <InputField
-                icon={<FiLock />}
-                label="পাসওয়ার্ড *"
+          {/* Email & Password */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email *"
+                value={formData.email}
+                onChange={handleChange}
+                className={`input ${errors.email ? "input-error" : ""}`}
+              />
+              {errors.email && <p className="error-text">{errors.email}</p>}
+            </div>
+            <div>
+              <input
                 type="password"
                 name="password"
+                placeholder="Password *"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="******"
+                className={`input ${errors.password ? "input-error" : ""}`}
               />
-              <InputField
-                icon={<FiLock />}
-                label="পাসওয়ার্ড নিশ্চিত করুন *"
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="******"
-              />
+              {errors.password && (
+                <p className="error-text">{errors.password}</p>
+              )}
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 font-bold text-white rounded-xl shadow-lg transition-all duration-300 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 flex justify-center items-center ${
-                loading ? "opacity-60 cursor-not-allowed" : ""
-              }`}
-            >
-              {loading ? "Registering..." : "রেজিস্টার করুন"}
-            </button>
-          </form>
+          {/* Phone & NID */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <input
+                type="text"
+                name="phone"
+                placeholder="Phone *"
+                value={formData.phone}
+                onChange={handleChange}
+                className={`input ${errors.phone ? "input-error" : ""}`}
+              />
+              {errors.phone && <p className="error-text">{errors.phone}</p>}
+            </div>
+            <div>
+              <input
+                type="text"
+                name="nid"
+                placeholder="NID *"
+                value={formData.nid}
+                onChange={handleChange}
+                className={`input ${errors.nid ? "input-error" : ""}`}
+              />
+              {errors.nid && <p className="error-text">{errors.nid}</p>}
+            </div>
+          </div>
 
-          <p className="text-center text-gray-600 text-sm mt-5">
-            ইতিমধ্যেই একাউন্ট আছে?{" "}
-            <Link
-              to="/login"
-              className="text-purple-700 font-medium hover:underline"
+          {/* Address & Occupation */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <input
+                type="text"
+                name="address"
+                placeholder="Address *"
+                value={formData.address}
+                onChange={handleChange}
+                className={`input ${errors.address ? "input-error" : ""}`}
+              />
+              {errors.address && <p className="error-text">{errors.address}</p>}
+            </div>
+            <input
+              type="text"
+              name="occupation"
+              placeholder="Occupation (Optional)"
+              value={formData.occupation}
+              onChange={handleChange}
+              className="input"
+            />
+          </div>
+
+          {/* Blood Group & Avatar */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <select
+              name="bloodGroup"
+              value={formData.bloodGroup}
+              onChange={handleChange}
+              className="input"
             >
-              লগইন করুন
-            </Link>
-          </p>
-        </div>
+              <option value="Unknown">Select Blood Group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+
+            <input
+              type="text"
+              name="avatar"
+              placeholder="Profile Image URL (Optional)"
+              value={formData.avatar}
+              onChange={handleChange}
+              className="input"
+            />
+          </div>
+
+          {/* Bio */}
+          <textarea
+            name="bio"
+            placeholder="Short Bio (Optional)"
+            value={formData.bio}
+            onChange={handleChange}
+            rows="3"
+            className="input"
+          ></textarea>
+
+          {/* Submit */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={loading}
+            type="submit"
+            className={`submit-btn ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? "Processing..." : "Register Now"}
+          </motion.button>
+        </form>
+
+        <p className="text-center text-white/80 mt-6">
+          Already have an account?{" "}
+          <span
+            onClick={() => navigate("/login")}
+            className="text-yellow-300 hover:underline cursor-pointer font-semibold"
+          >
+            Login
+          </span>
+        </p>
       </motion.div>
     </div>
   );
-}
+};
 
-// ====================
-// Reusable InputField Component
-// ====================
-const InputField = ({
-  icon,
-  label,
-  name,
-  type = "text",
-  placeholder,
-  value,
-  onChange,
-}) => (
-  <div className="relative">
-    {icon && (
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-        {icon}
-      </div>
-    )}
-    <label className="block text-gray-700 mb-1 font-medium">{label}</label>
-    <input
-      type={type}
-      name={name}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className={`w-full border border-gray-300 rounded-xl px-4 py-2 pl-10 focus:ring-2 focus:ring-purple-500 outline-none transition-all duration-300`}
-    />
-  </div>
-);
+export default Register;

@@ -1,20 +1,18 @@
+// routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
 const authCtrl = require("../controllers/authController");
 
-// ✅ Register
+// public
 router.post("/register", authCtrl.register);
-
-// ✅ Login
 router.post("/login", authCtrl.login);
-
-// ✅ Logout
-router.post("/logout", authCtrl.logout);
-
-// ✅ Forgot Password
+// routes/authRoutes.js
 router.post("/forgot-password", authCtrl.forgotPassword);
+router.post("/reset-password-with-token", authCtrl.resetPasswordWithToken); // new
+// keep existing /reset-password/:token for link-based flows
 
-// ✅ Reset Password
-router.put("/reset-password/:token", authCtrl.resetPassword);
+router.get("/verify-email/:token", authCtrl.verifyEmail);
+
+// protected routes should use auth middleware (not included here)
 
 module.exports = router;

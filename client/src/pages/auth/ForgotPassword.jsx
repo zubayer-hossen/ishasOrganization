@@ -1,12 +1,12 @@
-import { useState } from "react";
-import axiosInstance from "../../utils/axiosInstance";
+// frontend/src/pages/auth/ForgotPassword.jsx
+import React, { useState } from "react";
+import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { FiMail, FiSend } from "react-icons/fi";
-import { motion } from "framer-motion";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
+  const [returnedToken, setReturnedToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -16,64 +16,67 @@ export default function ForgotPassword() {
       toast.error("Email is required");
       return;
     }
-
     setLoading(true);
     try {
-      const res = await axiosInstance.post("/auth/forgot-password", { email });
-      toast.success(res.data.msg);
-      navigate("/login");
+      const res = await axios.post(
+        "https://ishasorganizationbackend.onrender.com/api/auth/forgot-password",
+        { email }
+      );
+      toast.success(res.data.msg || "If email exists, reset sent.");
+      if (res.data.resetToken) {
+        setReturnedToken(res.data.resetToken);
+      }
+      // Optionally navigate to a page that allows manual paste
+      // navigate("/reset-password-manual");
     } catch (err) {
-      console.error(err);
       toast.error(err.response?.data?.msg || "Server error");
+      if (err.response?.data?.resetToken) {
+        setReturnedToken(err.response.data.resetToken);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl"
-      >
-        <h2 className="text-2xl font-bold text-center mb-6">Forgot Password</h2>
-        <p className="text-gray-500 text-sm mb-6 text-center">
-          Enter your registered email address and we’ll send you a password
-          reset link.
-        </p>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-100">
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
+        <h2 className="text-xl font-bold mb-4">Forgot Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-blue-500" />
-            <input
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-10 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              required
-            />
-          </div>
-          <motion.button
-            type="submit"
+          <input
+            type="email"
+            placeholder="Your registered email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border p-2 rounded"
+            required
+          />
+          <button
+            className="w-full bg-blue-600 text-white p-2 rounded"
             disabled={loading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition ${
-              loading ? "cursor-not-allowed opacity-70" : ""
-            }`}
           >
-            {loading ? (
-              "Sending..."
-            ) : (
-              <>
-                <FiSend /> Send Reset Link
-              </>
-            )}
-          </motion.button>
+            {loading ? "Sending..." : "Send Reset Link"}
+          </button>
         </form>
-      </motion.div>
+
+        {returnedToken && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-sm text-yellow-800">
+              Debug mode: Your reset token (copy it):
+            </p>
+            <pre className="mt-2 text-sm break-words">{returnedToken}</pre>
+            <p className="text-xs text-gray-500 mt-2">
+              Use it on the manual reset page.
+            </p>
+            <button
+              onClick={() => navigate("/reset-password-manual")}
+              className="mt-2 text-sm text-blue-600 underline"
+            >
+              Go to manual reset
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
