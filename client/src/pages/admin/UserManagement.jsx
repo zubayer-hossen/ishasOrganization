@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react"; // useState যোগ করা হয়েছে
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchUsers,
@@ -29,6 +29,31 @@ export default function UserManagement() {
       .unwrap()
       .then(() => toast.success("Role updated successfully"))
       .catch(() => toast.error("Failed to update role"));
+  };
+
+  // 🔒 নতুন পাসওয়ার্ড আপডেট ফাংশন
+  const handlePasswordUpdate = (id) => {
+    const newPassword = window.prompt("Enter the new password for this user:");
+
+    if (newPassword && newPassword.trim() !== "") {
+      // কমপক্ষে 6 অক্ষরের পাসওয়ার্ড নিশ্চিত করুন
+      if (newPassword.length < 6) {
+        toast.error("Password must be at least 6 characters long.");
+        return;
+      }
+
+      // updateUser thunk ব্যবহার করে পাসওয়ার্ড আপডেট করা হচ্ছে
+      // মনে রাখবেন, আপনার Redux slice এবং backend-এ 'password' ফিল্ড হ্যান্ডেল করার জন্য
+      // যুক্তি থাকতে হবে।
+      dispatch(updateUser({ userId: id, data: { password: newPassword } }))
+        .unwrap()
+        .then(() => toast.success("Password updated successfully"))
+        .catch(() => toast.error("Failed to update password"));
+    } else if (newPassword === null) {
+      // ব্যবহারকারী বাতিল (Cancel) ক্লিক করলে কিছু হবে না
+    } else {
+      toast.error("Password cannot be empty.");
+    }
   };
 
   const handleDelete = (id) => {
@@ -91,7 +116,14 @@ export default function UserManagement() {
                       <span className="text-red-600 font-semibold">✘ No</span>
                     )}
                   </td>
-                  <td className="border p-3 flex space-x-2">
+                  <td className="border p-3 flex flex-wrap gap-2">
+                    {/* পাসওয়ার্ড আপডেট বাটন */}
+                    <button
+                      onClick={() => handlePasswordUpdate(u._id)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                    >
+                      🔒 Pass
+                    </button>
                     {!u.isVerified ? (
                       <button
                         onClick={() => handleVerify(u._id, true)}

@@ -24,6 +24,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 
 import ResetPasswordManual from "./pages/auth/ResetPasswordManual";
 import NotFound from "./components/common/NotFound";
+import Nitimala from "./pages/Nitimala";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           element={<ResetPasswordManual />}
         />
 
+        <Route path="/nitimala" element={<Nitimala />} />
         <Route path="*" element={<NotFound />} />
 
         {/* Protected Routes */}

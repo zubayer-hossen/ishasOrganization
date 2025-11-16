@@ -1,28 +1,25 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../redux/slices/blogSlice";
-// ✅ সঠিক Axios Instance import করুন
 import axios from "../../utils/axiosInstance";
 import { toast } from "react-toastify";
 
 export default function BlogManagement() {
   const dispatch = useDispatch();
-  // ধরে নেওয়া হচ্ছে 'blog' slice এ blogs, loading, error আছে
   const { blogs, loading, error } = useSelector((state) => state.blog);
 
+  // 📝 ব্লগ যোগ বা সম্পাদনার জন্য স্টেট
   const [form, setForm] = useState({
     title: "",
     body: "",
     image: "",
   });
 
-  // ℹ️ এই state টি Update Modal বা Form হ্যান্ডেল করার জন্য ব্যবহার করা যেতে পারে,
-  // তবে সহজ রাখার জন্য এখানে শুধু Add ও Delete দেখানো হলো।
-  // const [isEditing, setIsEditing] = useState(false);
-  // const [currentBlog, setCurrentBlog] = useState(null);
+  // 🔄 এডিটিং স্টেট
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentBlogId, setCurrentBlogId] = useState(null);
 
   useEffect(() => {
-    // ব্লগ লোড করতে হবে একবার
     dispatch(fetchBlogs());
   }, [dispatch]);
 
@@ -30,33 +27,59 @@ export default function BlogManagement() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ================= ADD BLOG FUNCTION =================
-  const handleSubmit = async (e) => {
+  // ================= ADD / UPDATE BLOG FUNCTION =================
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    try {
-      // ✅ এখানে আলাদা করে Headers বা Token সেট করার প্রয়োজন নেই,
-      // কারণ axiosInstance.js-এ Interceptor স্বয়ংক্রিয়ভাবে তা হ্যান্ডেল করবে।
-      const res = await axios.post("/blogs", form);
 
-      // সার্ভার রেসপন্স 201 হলে
-      toast.success("Blog added successfully! 🥳");
+    // নির্ধারণ করুন এটি যোগ (ADD) নাকি সম্পাদনা (UPDATE)
+    const url = isEditing ? `/blogs/${currentBlogId}` : "/blogs";
+    const method = isEditing ? axios.put : axios.post;
+    const actionText = isEditing ? "updated" : "added";
+
+    try {
+      await method(url, form);
+
+      toast.success(`Blog ${actionText} successfully! 🎉`);
+
+      // স্টেট রিসেট করুন
       setForm({ title: "", body: "", image: "" });
-      dispatch(fetchBlogs()); // নতুন ব্লগ সহ তালিকা আপডেট করুন
+      setIsEditing(false);
+      setCurrentBlogId(null);
+
+      dispatch(fetchBlogs()); // তালিকা আপডেট করুন
     } catch (err) {
-      console.error("Create Blog Error:", err);
-      // 'unauthorized no token' error হলেও Interceptor সেটাকে Refresh Token দিয়ে
-      // handle করার চেষ্টা করবে। যদি ব্যর্থ হয়, তবে লগআউট হবে বা error দেবে।
+      console.error(`${actionText} Blog Error:`, err);
       toast.error(
-        err.response?.data?.msg || "Failed to add blog. Check credentials/role."
+        err.response?.data?.msg ||
+          `Failed to ${actionText} blog. Check permissions.`
       );
     }
+  };
+
+  // ================= SET EDIT MODE FUNCTION =================
+  const handleEdit = (blog) => {
+    setCurrentBlogId(blog._id);
+    setForm({
+      title: blog.title,
+      body: blog.body,
+      image: blog.image,
+    });
+    setIsEditing(true);
+    // ফর্ম এর দিকে স্ক্রল করার জন্য
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ================= CANCEL EDIT FUNCTION =================
+  const handleCancelEdit = () => {
+    setForm({ title: "", body: "", image: "" });
+    setIsEditing(false);
+    setCurrentBlogId(null);
   };
 
   // ================= DELETE BLOG FUNCTION =================
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this blog?")) {
       try {
-        // ✅ এখানেও Headers বা Token সেট করার প্রয়োজন নেই।
         await axios.delete(`/blogs/${id}`);
 
         toast.success("Blog deleted successfully! 🗑️");
@@ -80,39 +103,66 @@ export default function BlogManagement() {
         📝 Blog Management
       </h2>
 
-      {/* Add Blog Form */}
-      <form onSubmit={handleSubmit} className="mb-6 space-y-4">
+      {/* Add/Edit Blog Form */}
+      <form
+        onSubmit={handleEditSubmit}
+        className="mb-10 p-6 border rounded-xl shadow-lg bg-white space-y-4"
+      >
+        <h3 className="text-xl font-bold text-indigo-600 border-b pb-2 mb-4">
+          {isEditing
+            ? `✏️ Editing: ${form.title.substring(0, 30)}...`
+            : "➕ Add New Blog"}
+        </h3>
+
         <input
           type="text"
-          name="title" // name prop যোগ করা হয়েছে
+          name="title"
           placeholder="Title"
           value={form.title}
-          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
-          className="border p-2 rounded w-full"
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-indigo-500 focus:border-indigo-500"
           required
         />
         <textarea
-          name="body" // name prop যোগ করা হয়েছে
-          placeholder="Body"
+          name="body"
+          placeholder="Body (Use <b>, <p>, etc. tags for formatting)" // HTML ট্যাগ ব্যবহারের নির্দেশনা
           value={form.body}
-          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
-          className="border p-2 rounded w-full"
-          rows={4}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-indigo-500 focus:border-indigo-500"
+          rows={6}
+          required
         />
         <input
           type="text"
-          name="image" // name prop যোগ করা হয়েছে
+          name="image"
           placeholder="Image URL"
           value={form.image}
-          onChange={handleChange} // handleChange ব্যবহার করা হয়েছে
-          className="border p-2 rounded w-full"
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-indigo-500 focus:border-indigo-500"
         />
-        <button
-          type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-        >
-          Add Blog
-        </button>
+
+        <div className="flex space-x-3">
+          <button
+            type="submit"
+            className={`px-4 py-2 rounded font-semibold text-white transition-colors ${
+              isEditing
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
+          >
+            {isEditing ? "Save Changes" : "Add Blog"}
+          </button>
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="px-4 py-2 rounded font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-colors"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
       </form>
 
       {/* Blog Table */}
@@ -124,7 +174,7 @@ export default function BlogManagement() {
                 Title
               </th>
               <th className="px-6 py-3 text-left text-sm font-medium uppercase">
-                Body
+                Body (Excerpt)
               </th>
               <th className="px-6 py-3 text-left text-sm font-medium uppercase">
                 Image
@@ -143,11 +193,14 @@ export default function BlogManagement() {
                 key={b._id}
                 className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}
               >
-                <td className="px-6 py-4 font-semibold text-gray-800">
+                <td className="px-6 py-4 font-semibold text-gray-800 line-clamp-2">
                   {b.title}
                 </td>
                 <td className="px-6 py-4 text-gray-700 line-clamp-2">
-                  {b.body}
+                  {/* এডমিন টেবিলে সাধারণত ট্যাগ ছাড়া টেক্সট দেখানো হয় */}
+                  {b.body
+                    ? b.body.replace(/<[^>]+>/g, "").substring(0, 50) + "..."
+                    : "No content"}
                 </td>
                 <td className="px-6 py-4">
                   {b.image ? (
@@ -160,24 +213,19 @@ export default function BlogManagement() {
                     "No image"
                   )}
                 </td>
-                <td className="px-6 py-4 text-gray-600">
-                  {new Date(b.publishedAt).toLocaleString("en-US", {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <td className="px-6 py-4 text-gray-600 whitespace-nowrap text-sm">
+                  {new Date(b.publishedAt).toLocaleDateString("en-GB")}
                 </td>
-                <td className="px-6 py-4 space-x-2">
-                  {/* আপনি এখানে একটি Edit Button যোগ করতে পারেন */}
-                  {/* <button className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                <td className="px-6 py-4 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleEdit(b)}
+                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm"
+                  >
                     Edit
-                  </button> */}
+                  </button>
                   <button
                     onClick={() => handleDelete(b._id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
                   >
                     Delete
                   </button>
