@@ -66,7 +66,7 @@ export default function Home() {
 
   // Test Case: Empty array (shows clock)
   const headlines = [
-    "অত্যন্ত গুরুত্বপূর্ণ প্রয়োজনে আজ (২১-১০-২০২৫) এশার নামাজের পর স্থানীয় ভিতরের জামে মসজিদে ইশাস সংগঠনের একটি জরুরি সভা অনুষ্ঠিত হবে।",
+    "ইশাস সংগঠনের নিতিমালা প্রকাশিত হলো আজ (১৭/১১/’২৫) সোমবার || ফাইলটি আমাদের এই সাইট থেকে ডাউনলোড করা যাবে । ধন্যবাদ",
   ];
 
   // Headlines FIX: Check for valid strings and prepare the data
